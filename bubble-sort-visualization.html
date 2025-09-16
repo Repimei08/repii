@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Visualisasi Bubble Sort (Standar & Optimized)</title>
+  <style>
+    :root{--bg:#0f172a;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--success:#10b981}
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#071024 0%, #071c2a 100%);color:#e6eef6;padding:18px}
+    .wrap{max-width:1100px;margin:0 auto}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    header h1{font-size:18px;margin:0;color:var(--accent)}
+    .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+    .card{background:rgba(255,255,255,0.03);padding:12px;border-radius:10px;box-shadow:0 6px 20px rgba(2,6,23,0.6)}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type=range]{width:100%}
+    input[type=number],input[type=text],select{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    button{background:var(--accent);color:#012;border:none;padding:8px 10px;border-radius:8px;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    .viz{height:360px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);margin:12px 0;border-radius:10px;display:flex;align-items:flex-end;padding:10px;gap:4px}
+    .bar{flex:1 1 auto;display:flex;align-items:flex-end;justify-content:center;border-radius:6px 6px 2px 2px;position:relative}
+    .bar .val{position:absolute;bottom:100%;font-size:11px;padding:2px 6px;color:var(--muted)}
+    .bar.default{background:linear-gradient(180deg,#2b6cb0,#1e40af)}
+    .bar.compare{background:linear-gradient(180deg,#f59e0b,#f97316)}
+    .bar.swap{background:linear-gradient(180deg,#ef4444,#dc2626)}
+    .bar.sorted{background:linear-gradient(180deg,#34d399,#059669)}
+    .stats{display:flex;gap:12px;align-items:center;margin-top:6px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:13px}
+    footer{margin-top:10px;color:var(--muted);font-size:13px}
+    .grid-2{display:grid;grid-template-columns:1fr 320px;gap:12px}
+    @media (max-width:900px){.controls{grid-template-columns:1fr;}.grid-2{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Visualisasi Bubble Sort — Standar & Optimized</h1>
+      <div style="font-size:13px;color:var(--muted)">By Repi Meilani Putri • buka file di browser</div>
+    </header>
+
+    <div class="controls">
+      <div class="card">
+        <label>Array (pisahkan koma) — contoh: 5,1,4,2,8</label>
+        <input id="manualInput" type="text" placeholder="Masukkan angka..." />
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button id="loadManual">Load</button>
+          <button class="ghost" id="randomize">Acak</button>
+          <button class="ghost" id="sortedBtn">Terurut</button>
+          <button class="ghost" id="reverseBtn">Terbalik</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <label>Ukuran Array</label>
+        <input id="size" type="number" min="3" max="120" value="20" />
+        <label style="margin-top:8px">Kecepatan (ms per langkah)</label>
+        <input id="speed" type="range" min="10" max="800" value="120" />
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span id="speedVal">120ms</span><span id="sizeVal">20</span></div>
+      </div>
+
+      <div class="card">
+        <label>Mode</label>
+        <select id="mode">
+          <option value="standard">Standar</option>
+          <option value="optimized">Optimized (berhenti awal)</option>
+        </select>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="start">Mulai</button>
+          <button class="ghost" id="step">Step</button>
+          <button class="ghost" id="reset">Reset</button>
+        </div>
+        <div style="margin-top:10px;color:var(--muted);font-size:13px">Perbandingan: <strong id="compCount">0</strong> &nbsp; | &nbsp; Pertukaran: <strong id="swapCount">0</strong></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <div id="viz" class="viz"></div>
+          <div class="stats">
+            <div style="font-size:13px;color:var(--muted)">Langkah: <strong id="stepIndex">0</strong></div>
+            <div style="font-size:13px;color:var(--muted)">Status: <strong id="status">Idle</strong></div>
+            <div style="font-size:13px;color:var(--muted)">Nilai saat ini: <strong id="currArray">[]</strong></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h3 style="margin:0 0 6px 0;color:var(--accent)">Eksperimen Praktis</h3>
+          <div style="display:flex;gap:8px">
+            <button id="runExp">Jalankan Eksperimen (size dari kontrol)</button>
+            <button class="ghost" id="clearTable">Bersihkan</button>
+          </div>
+          <table id="resTable" style="margin-top:8px"><thead><tr><th>Kondisi</th><th>Versi</th><th>Perbandingan</th><th>Pertukaran</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h3 style="margin:0 0 8px 0;color:var(--accent)">Petunjuk Singkat</h3>
+          <ul style="color:var(--muted);padding-left:18px;margin:0">
+            <li>Masukkan array manual atau gunakan tombol <em>Acak</em>/<em>Terurut</em>/<em>Terbalik</em>.</li>
+            <li>Pilih mode <strong>Standar</strong> atau <strong>Optimized</strong>.</li>
+            <li>Tekan <em>Mulai</em> untuk melihat animasi, <em>Step</em> untuk maju 1 langkah.</li>
+            <li>Gunakan Eksperimen untuk menghitung perbandingan & pertukaran pada kondisi Acak/Terurut/Terbalik.</li>
+          </ul>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h3 style="margin:0 0 6px 0;color:var(--accent)">Catatan</h3>
+          <div style="color:var(--muted);font-size:13px">Animasi bekerja paling baik untuk ukuran ≤ 60. Untuk ukuran besar gunakan waktu lebih cepat (ms kecil) atau nonaktifkan animasi dengan tombol Reset lalu gunakan Eksperimen.</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>File ini: buka langsung di browser (double-click pada file .html). Jika mau saya bisa ubah gaya warna atau tambahkan ekspor CSV.</footer>
+  </div>
+
+<script>
+// Util
+function randInt(min,max){return Math.floor(Math.random()*(max-min+1))+min}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+
+// Generate arrays
+function randomArray(n){const a=[];for(let i=0;i<n;i++)a.push(randInt(5,100));return a}
+function sortedArray(n){const a=[];for(let i=0;i<n;i++)a.push(i+1);return a}
+function reverseArray(n){return sortedArray(n).reverse()}
+
+// Produce steps for bubble sorts. Each step: {array:[], i, j, compare:[idx1,idx2], swapped:boolean, sortedIndices:[]}
+function bubbleSortSteps(arr){
+  const a = arr.slice();
+  const steps=[];
+  const n = a.length;
+  let comps=0, swaps=0;
+  for(let i=0;i<n-1;i++){
+    for(let j=0;j<n-1-i;j++){
+      comps++;
+      const stepBase={array:a.slice(), i, j, compare:[j,j+1], swapped:false, sorted:[]};
+      if(a[j]>a[j+1]){
+        const tmp=a[j]; a[j]=a[j+1]; a[j+1]=tmp; swaps++; stepBase.swapped=true; stepBase.array=a.slice();
+      }
+      if(i===n-2) stepBase.sorted = [...Array(n).keys()];
+      steps.push(stepBase);
+    }
+  }
+  return {steps, comps, swaps, final:a};
+}
+
+function optimizedBubbleSortSteps(arr){
+  const a = arr.slice();
+  const steps=[];
+  const n = a.length;
+  let comps=0, swaps=0;
+  for(let i=0;i<n-1;i++){
+    let swapped=false;
+    for(let j=0;j<n-1-i;j++){
+      comps++;
+      const stepBase={array:a.slice(), i, j, compare:[j,j+1], swapped:false, sorted:[]};
+      if(a[j]>a[j+1]){ const tmp=a[j]; a[j]=a[j+1]; a[j+1]=tmp; swaps++; swapped=true; stepBase.swapped=true; stepBase.array=a.slice(); }
+      steps.push(stepBase);
+    }
+    if(!swapped) break;
+  }
+  return {steps, comps, swaps, final:a};
+}
+
+// Rendering
+const viz = document.getElementById('viz');
+let currentArray = randomArray(20);
+let animation = null;
+let stepPointer = 0;
+let currentSteps = [];
+let compCount=0, swapCount=0;
+
+function renderArray(arr, highlight=[]){
+  viz.innerHTML='';
+  const max = Math.max(...arr,1);
+  arr.forEach((v,idx)=>{
+    const bar = document.createElement('div');
+    bar.className='bar default';
+    bar.style.height = Math.max(8, Math.round((v/max)*100))+'%';
+    bar.style.flex = '0 0 '+(Math.floor(100/arr.length))+'%';
+    const label = document.createElement('div'); label.className='val'; label.textContent=v;
+    bar.appendChild(label);
+    viz.appendChild(bar);
+  });
+}
+
+function renderStep(step){
+  const arr = step.array;
+  viz.innerHTML='';
+  const max = Math.max(...arr,1);
+  arr.forEach((v,idx)=>{
+    const bar = document.createElement('div');
+    let cls='bar default';
+    if(step.compare && (idx===step.compare[0] || idx===step.compare[1])) cls='bar compare';
+    if(step.swapped && (idx===step.compare[0] || idx===step.compare[1])) cls='bar swap';
+    bar.className=cls;
+    bar.style.height = Math.max(8, Math.round((v/max)*100))+'%';
+    bar.style.flex = '0 0 '+(Math.floor(100/arr.length))+'%';
+    const label = document.createElement('div'); label.className='val'; label.textContent=v;
+    bar.appendChild(label);
+    viz.appendChild(bar);
+  });
+}
+
+function updateUI(){
+  document.getElementById('compCount').textContent = compCount;
+  document.getElementById('swapCount').textContent = swapCount;
+  document.getElementById('stepIndex').textContent = stepPointer + '/' + Math.max(1,currentSteps.length);
+  document.getElementById('currArray').textContent = '['+currentArray.join(', ')+']';
+}
+
+// Controls
+document.getElementById('size').addEventListener('input', e=>{document.getElementById('sizeVal').textContent = e.target.value});
+document.getElementById('speed').addEventListener('input', e=>{document.getElementById('speedVal').textContent = e.target.value+'ms'});
+
+document.getElementById('randomize').addEventListener('click', ()=>{
+  const n = clamp(parseInt(document.getElementById('size').value)||20,3,120);
+  currentArray = randomArray(n);
+  renderArray(currentArray);
+  resetCounts();
+});
+
+document.getElementById('sortedBtn').addEventListener('click', ()=>{const n=clamp(parseInt(document.getElementById('size').value)||20,3,120);currentArray=sortedArray(n);renderArray(currentArray);resetCounts();});
+
+document.getElementById('reverseBtn').addEventListener('click', ()=>{const n=clamp(parseInt(document.getElementById('size').value)||20,3,120);currentArray=reverseArray(n);renderArray(currentArray);resetCounts();});
+
+document.getElementById('loadManual').addEventListener('click', ()=>{
+  const txt = document.getElementById('manualInput').value.trim();
+  if(!txt) return alert('Masukkan angka terlebih dulu');
+  const parts = txt.split(',').map(s=>parseFloat(s.trim())).filter(x=>!Number.isNaN(x));
+  if(parts.length<2) return alert('Masukkan minimal 2 angka');
+  currentArray = parts.slice(0,120);
+  document.getElementById('size').value = currentArray.length; document.getElementById('sizeVal').textContent=currentArray.length;
+  renderArray(currentArray); resetCounts();
+});
+
+function resetCounts(){ compCount=0; swapCount=0; stepPointer=0; currentSteps=[]; document.getElementById('status').textContent='Idle'; updateUI(); }
+
+document.getElementById('reset').addEventListener('click', ()=>{resetCounts(); renderArray(currentArray);});
+
+// Generate steps according to mode
+function prepareSteps(){
+  const mode = document.getElementById('mode').value;
+  if(mode==='standard'){
+    const res = bubbleSortSteps(currentArray);
+    currentSteps = res.steps; compCount = res.comps; swapCount = res.swaps; // BUT we want runtime counts to progress during animation; so recompute counts differently
+    // Instead, recompute counts at end for display; and create a fresh steps with counts zeroed
+    const info = bubbleSortSteps(currentArray);
+    currentSteps = info.steps;
+    compCount = 0; swapCount = 0;
+  } else {
+    const info = optimizedBubbleSortSteps(currentArray);
+    currentSteps = info.steps; compCount = 0; swapCount = 0;
+  }
+  stepPointer = 0;
+  document.getElementById('status').textContent='Prepared';
+  updateUI();
+}
+
+// Animation play
+function playAnimation(){
+  if(currentSteps.length===0) prepareSteps();
+  const speed = clamp(parseInt(document.getElementById('speed').value)||120,10,2000);
+  document.getElementById('status').textContent='Playing';
+  if(animation) clearInterval(animation);
+  animation = setInterval(()=>{
+    if(stepPointer>=currentSteps.length){
+      clearInterval(animation);
+      animation=null;
+      document.getElementById('status').textContent='Finished';
+      // update counts final
+      const finalInfo = (document.getElementById('mode').value==='standard')?bubbleSortSteps(currentArray):optimizedBubbleSortSteps(currentArray);
+      compCount = finalInfo.comps; swapCount = finalInfo.swaps; updateUI();
+      renderArray(finalInfo.final);
+      return;
+    }
+    const s = currentSteps[stepPointer];
+    // increment counts based on step
+    compCount++;
+    if(s.swapped) swapCount++;
+    renderStep(s);
+    stepPointer++;
+    updateUI();
+  }, speed);
+}
+
+document.getElementById('start').addEventListener('click', ()=>{prepareSteps(); playAnimation();});
+
+// Step button: advance single step
+document.getElementById('step').addEventListener('click', ()=>{
+  if(currentSteps.length===0) prepareSteps();
+  if(stepPointer>=currentSteps.length) return;
+  const s = currentSteps[stepPointer];
+  compCount++;
+  if(s.swapped) swapCount++;
+  renderStep(s);
+  stepPointer++; updateUI();
+  if(stepPointer>=currentSteps.length) document.getElementById('status').textContent='Finished'; else document.getElementById('status').textContent='Stepping';
+});
+
+// Experiments: run for 3 conditions and both versions, show table
+function runExperimentFor(arr, version){
+  if(version==='standard') return bubbleSortSteps(arr);
+  return optimizedBubbleSortSteps(arr);
+}
+
+document.getElementById('runExp').addEventListener('click', ()=>{
+  const n = clamp(parseInt(document.getElementById('size').value)||20,3,200);
+  const tbody = document.querySelector('#resTable tbody');
+  const configs = [
+    {name:'Acak', arr: randomArray(n)},
+    {name:'Terurut (naik)', arr: sortedArray(n)},
+    {name:'Terbalik', arr: reverseArray(n)}
+  ];
+  configs.forEach(cfg=>{
+    ['standard','optimized'].forEach(ver=>{
+      const info = runExperimentFor(cfg.arr.slice(), ver);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${cfg.name}</td><td>${ver}</td><td>${info.comps}</td><td>${info.swaps}</td>`;
+      tbody.appendChild(tr);
+    });
+  });
+});
+
+document.getElementById('clearTable').addEventListener('click', ()=>{document.querySelector('#resTable tbody').innerHTML='';});
+
+// Initial render
+renderArray(currentArray);
+updateUI();
+
+</script>
+</body>
+</html>
